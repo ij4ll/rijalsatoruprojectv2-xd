@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - RijalSatoru-Api</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .graffiti-3d {
+      font-family: 'Permanent Marker', cursive;
+      color: #00f3ff;
+      -webkit-text-stroke: 1.8px #000;
+      text-shadow: 3px 3px 0px #000, 0 0 15px rgba(0, 243, 255, 0.8);
+    }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    button[disabled] { opacity: 0.6; cursor: not-allowed; }
+  </style>
+</head>
+<body class="text-slate-200 min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+
+  <!-- BACKGROUND VIDEO -->
+  <div class="fixed inset-0 z-[-10] overflow-hidden pointer-events-none">
+    <video autoplay muted loop playsinline class="w-full h-full object-cover">
+      <source src="https://files.catbox.moe/kznynd.mp4" type="video/mp4">
+    </video>
+    <div class="absolute inset-0 bg-slate-950/80"></div>
+  </div>
+
+  <div class="bg-slate-950/90 border border-purple-500/40 backdrop-blur-xl p-8 rounded-3xl max-w-md w-full shadow-2xl animate-fade-up">
+    <div class="text-center mb-6">
+      <h1 class="graffiti-3d text-2xl mb-1">RijalSatoru-Api</h1>
+      <p class="text-xs text-slate-400">Silakan login untuk mendapatkan API Key Anda.</p>
+    </div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4" novalidate>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-300 mb-1">Username atau Email</label>
+        <input type="text" id="loginIdentifier" required autocomplete="username" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-cyan-400">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-300 mb-1">Password</label>
+        <input type="password" id="loginPassword" required autocomplete="current-password" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-cyan-400">
+      </div>
+      <button type="submit" id="loginSubmitBtn" class="w-full py-3 bg-cyan-400 text-slate-950 font-black text-xs rounded-xl hover:bg-cyan-300 transition shadow-lg mt-2">LOGIN</button>
+    </form>
+
+    <div class="text-center mt-6 text-xs text-slate-400">
+      Belum punya akun? <a href="/register.html" class="text-cyan-400 font-bold hover:underline">Register di sini</a>
+    </div>
+    <div class="text-center mt-3">
+      <a href="/" class="text-[11px] text-slate-500 hover:text-white"><i class="fa-solid fa-arrow-left mr-1"></i> Kembali ke Beranda</a>
+    </div>
+  </div>
+
+  <script src="/common.js"></script>
+  <script>
+    async function handleLogin(e) {
+      e.preventDefault();
+
+      const identifier = document.getElementById('loginIdentifier').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const submitBtn = document.getElementById('loginSubmitBtn');
+
+      if (!identifier || !password) {
+        showNotify('warning', 'Data Belum Lengkap', 'Isi username/email dan password terlebih dahulu.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'MEMPROSES...';
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, password })
+        });
+        const data = await response.json();
+
+        if (response.status === 404) {
+          showNotify(
+            'warning',
+            'Akun Belum Terdaftar',
+            'Username/email dan password tersebut belum ada di database kami. Silakan registrasi terlebih dahulu.',
+            null,
+            { label: 'Daftar Sekarang', onClick: function () { window.location.href = '/register.html'; } }
+          );
+          return;
+        }
+        if (response.status === 401) {
+          showNotify('error', 'Password Salah', data.message || 'Password yang Anda masukkan tidak sesuai. Silakan coba lagi.');
+          return;
+        }
+        if (!response.ok || !data.status) {
+          showNotify('error', 'Login Gagal', data.message || 'Terjadi kesalahan, silakan coba lagi.');
+          return;
+        }
+
+        localStorage.setItem('user_data', JSON.stringify({
+          username: data.username,
+          email: data.email,
+          apikey: data.apikey
+        }));
+
+        showNotify('success', 'Login Berhasil!', 'Mengalihkan ke beranda...', function () {
+          window.location.href = '/';
+        });
+      } catch (err) {
+        showNotify('error', 'Tidak Bisa Terhubung ke Server', 'Periksa koneksi internet Anda lalu coba lagi.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'LOGIN';
+      }
+    }
+  </script>
+</body>
+</html>
